@@ -1,18 +1,65 @@
 import prisma from "../prisma/client";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-export async function registerUser(data: {
-  name: string;
+export async function loginUser(data: {
   email: string;
   password: string;
 }) {
-  const exists = await prisma.user.findUnique({
+
+  const user = await prisma.user.findUnique({
     where: {
       email: data.email,
     },
   });
 
-  if (exists) {
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const validPassword = await bcrypt.compare(
+    data.password,
+    user.passwordHash
+  );
+
+  if (!validPassword) {
+    throw new Error("Invalid password");
+  }
+
+  const token = jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+    },
+    process.env.JWT_SECRET!,
+    {
+      expiresIn: "7d",
+    }
+  );
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
+  };
+}
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export async function registerUser(data: RegisterData) {
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email: data.email,
+    },
+  });
+
+  if (existingUser) {
     throw new Error("User already exists");
   }
 
@@ -26,5 +73,10 @@ export async function registerUser(data: {
     },
   });
 
-  return user;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    createdAt: user.createdAt,
+  };
 }
