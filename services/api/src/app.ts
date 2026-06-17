@@ -18,6 +18,8 @@ import profileRoutes from "./routes/profile.routes";
 import notificationRoutes from "./routes/notification.routes";
 import receiptHistoryRoutes from "./routes/receiptHistory.routes";
 import forecastRoutes from "./routes/forecast.routes";
+import budgetRoutes from "./routes/budget.routes";
+import subscriptionRoutes from "./routes/subscription.routes";
 
 const app = express();
 
@@ -87,6 +89,15 @@ app.use(
 app.use(
   "/api/forecast",
   forecastRoutes
+);
+
+app.use(
+  "/api/budget",
+  budgetRoutes
+);
+app.use(
+  "/api/subscriptions",
+  subscriptionRoutes
 );
 
 export default app;

@@ -39,6 +39,16 @@ const menu = [
     href: "/profile",
     icon: "👤",
   },
+  {
+  name: "Budget",
+  href: "/budget",
+  icon: "💰",
+},
+{
+  name: "Subscriptions",
+  href: "/subscriptions",
+  icon: "💳",
+},
 ];
 
 export default function Sidebar() {
