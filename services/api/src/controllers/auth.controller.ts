@@ -11,13 +11,15 @@ export const me = async (
 
   const user = await prisma.user.findUnique({
     where: {
-      id: req.user.id,
+      id: req.user!.id,
     },
   });
 
   res.json(user);
 };
 export const login = async (req: Request, res: Response) => {
+  console.log("BODY =>", req.body);
+
   try {
     const result = await loginUser(req.body);
 
@@ -26,14 +28,11 @@ export const login = async (req: Request, res: Response) => {
       token: result.token,
       user: result.user,
     });
-
   } catch (err: any) {
-
     return res.status(400).json({
       success: false,
       message: err.message,
     });
-
   }
 };
 export const register = async (req: Request, res: Response) => {

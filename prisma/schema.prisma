@@ -14,8 +14,13 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  memberships  GroupMember[]
-  expensesPaid Expense[]
+  memberships         GroupMember[]
+  expensesPaid        Expense[]
+  expenseParticipants ExpenseParticipant[]
+  receipts            Receipt[]
+  activities          Activity[]
+  chats               Chat[]
+  notifications       Notification[]
 }
 
 model Group {
@@ -23,8 +28,10 @@ model Group {
   name      String
   createdAt DateTime @default(now())
 
-  members GroupMember[]
-  Expense Expense[]
+  members    GroupMember[]
+  expenses   Expense[]
+  receipts   Receipt[]
+  activities Activity[]
 }
 
 model GroupMember {
@@ -33,20 +40,141 @@ model GroupMember {
   userId  String
   groupId String
 
-  user  User  @relation(fields: [userId], references: [id])
-  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
 }
 
 model Expense {
-  id          String @id @default(cuid())
+  id          String   @id @default(cuid())
   amount      Float
   description String
+  category    String   @default("Other")
+  createdAt   DateTime @default(now())
 
   groupId  String
   paidById String
 
-  group  Group @relation(fields: [groupId], references: [id])
-  paidBy User  @relation(fields: [paidById], references: [id])
+  group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy User  @relation(fields: [paidById], references: [id], onDelete: Cascade)
+
+  participants ExpenseParticipant[]
+  receipt      Receipt?
+
+  @@index([groupId])
+  @@index([paidById])
+}
+
+model ExpenseParticipant {
+  id String @id @default(cuid())
+
+  expenseId String
+  userId    String
+
+  shareAmount Float
+  paid        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+  @@index([expenseId])
+  @@index([userId])
+}
+
+model Receipt {
+  id String @id @default(cuid())
+
+  imagePath String
+
+  ocrText String @db.Text
+
+  merchant String?
+
+  amount Float
+
+  category String?
+
+  description String?
+
+  receiptDate String?
+
+  confidence Float?
+
+  expenseId String? @unique
+
+  expense Expense? @relation(fields: [expenseId], references: [id])
+
+  uploadedById String
+
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  groupId String
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([groupId])
+  @@index([uploadedById])
+}
+
+model Activity {
+  id String @id @default(cuid())
+
+  action String
+
+  description String
+
+  createdAt DateTime @default(now())
+
+  userId String
+
+  groupId String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  group Group? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([groupId])
+}
+
+model Chat {
+  id String @id @default(cuid())
+
+  userId String
+
+  question String @db.Text
+
+  answer String @db.Text
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Notification {
+  id String @id @default(cuid())
+
+  title String
+
+  message String
+
+  type String
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
