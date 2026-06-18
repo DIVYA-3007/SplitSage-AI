@@ -4,6 +4,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import {
   createSubscription,
   getSubscriptions,
+  getSubscriptionSummary,
   updateSubscription,
   deleteSubscription,
 } from "../controllers/subscription.controller";
@@ -20,6 +21,13 @@ router.get(
   "/",
   authMiddleware,
   getSubscriptions
+);
+
+// IMPORTANT: keep this BEFORE any /:id route
+router.get(
+  "/summary",
+  authMiddleware,
+  getSubscriptionSummary
 );
 
 router.put(

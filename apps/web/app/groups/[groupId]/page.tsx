@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import InviteMember from "@/components/groups/InviteMember";
+import MemberList from "@/components/groups/MemberList";
+
 import api from "@/lib/api";
 
 export default function GroupDetailsPage() {
@@ -25,19 +29,14 @@ export default function GroupDetailsPage() {
     try {
       setLoading(true);
 
-      const groupRes = await api.get(
-        `/groups/${groupId}`
-      );
-
-      const expenseRes = await api.get(
-        `/expenses/${groupId}`
-      );
+      const [groupRes, expenseRes] = await Promise.all([
+        api.get(`/groups/${groupId}`),
+        api.get(`/expenses/${groupId}`),
+      ]);
 
       setGroup(groupRes.data.group);
 
-      setExpenses(
-        expenseRes.data.expenses || []
-      );
+      setExpenses(expenseRes.data.expenses || []);
     } catch (err) {
       console.log(err);
     } finally {
@@ -48,8 +47,10 @@ export default function GroupDetailsPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="text-white text-4xl">
-          Loading...
+        <div className="flex items-center justify-center h-[70vh]">
+          <div className="text-4xl font-bold">
+            Loading...
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -58,8 +59,10 @@ export default function GroupDetailsPage() {
   if (!group) {
     return (
       <DashboardLayout>
-        <div className="text-red-500 text-4xl">
-          Group not found
+        <div className="flex items-center justify-center h-[70vh]">
+          <div className="text-4xl text-red-500 font-bold">
+            Group not found
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -67,19 +70,34 @@ export default function GroupDetailsPage() {
 
   return (
     <DashboardLayout>
-      <h1 className="text-5xl font-bold mb-10">
-        👥 {group.name}
-      </h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+      {/* Header */}
+
+      <div className="flex justify-between items-center mb-10">
+
+        <div>
+
+          <h1 className="text-5xl font-bold">
+            👥 {group.name}
+          </h1>
+
+          <p className="text-slate-400 mt-3 text-lg">
+            Manage expenses and members
+          </p>
+
+        </div>
+
+      </div>
+
+      {/* Quick Actions */}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
 
         <button
           onClick={() =>
-            router.push(
-              `/groups/${groupId}/add-expense`
-            )
+            router.push(`/groups/${groupId}/add-expense`)
           }
-          className="bg-blue-600 hover:bg-blue-700 rounded-lg p-4 font-bold transition"
+          className="bg-blue-600 hover:bg-blue-700 rounded-2xl p-5 font-bold shadow-lg hover:scale-105 transition-all"
         >
           ➕ Add Expense
         </button>
@@ -88,18 +106,16 @@ export default function GroupDetailsPage() {
           onClick={() =>
             router.push("/receipt")
           }
-          className="bg-green-600 hover:bg-green-700 rounded-lg p-4 font-bold transition"
+          className="bg-green-600 hover:bg-green-700 rounded-2xl p-5 font-bold shadow-lg hover:scale-105 transition-all"
         >
           📸 Scan Receipt
         </button>
 
         <button
           onClick={() =>
-            router.push(
-              `/settlements/${groupId}`
-            )
+            router.push(`/settlements/${groupId}`)
           }
-          className="bg-purple-600 hover:bg-purple-700 rounded-lg p-4 font-bold transition"
+          className="bg-purple-600 hover:bg-purple-700 rounded-2xl p-5 font-bold shadow-lg hover:scale-105 transition-all"
         >
           💰 Settlements
         </button>
@@ -108,86 +124,97 @@ export default function GroupDetailsPage() {
           onClick={() =>
             router.push("/chat")
           }
-          className="bg-orange-600 hover:bg-orange-700 rounded-lg p-4 font-bold transition"
+          className="bg-orange-600 hover:bg-orange-700 rounded-2xl p-5 font-bold shadow-lg hover:scale-105 transition-all"
         >
           🤖 AI Chat
         </button>
 
       </div>
 
-      <div className="bg-slate-900 rounded-xl p-6 mb-8">
+      {/* Members Section */}
 
-        <h2 className="text-3xl font-bold mb-5">
-          Members
-        </h2>
+      <div className="grid lg:grid-cols-2 gap-8 mb-10">
 
-        {group.members?.length > 0 ? (
-          group.members.map(
-            (member: any) => (
-              <div
-                key={member.id}
-                className="border-b border-slate-700 py-3"
-              >
-                <h3 className="text-xl">
-                  {member.user?.name}
-                </h3>
+        <MemberList
+          members={group.members || []}
+          groupId={groupId}
+          onRefresh={loadGroup}
+        />
 
-                <p className="text-slate-400">
-                  {member.user?.email}
-                </p>
-              </div>
-            )
-          )
-        ) : (
-          <p className="text-slate-400">
-            No members found.
-          </p>
-        )}
+        <InviteMember
+          groupId={groupId}
+          onInviteSuccess={loadGroup}
+        />
 
       </div>
 
-      <div className="bg-slate-900 rounded-xl p-6">
+      {/* Expenses */}
 
-        <h2 className="text-3xl font-bold mb-5">
-          Expenses
-        </h2>
+      <div className="bg-slate-900 rounded-3xl border border-slate-800 p-8">
+
+        <div className="flex justify-between items-center mb-8">
+
+          <h2 className="text-3xl font-bold">
+            💳 Expenses
+          </h2>
+
+          <span className="text-slate-400">
+            {expenses.length} Expenses
+          </span>
+
+        </div>
 
         {expenses.length === 0 ? (
-          <p className="text-slate-400">
-            No expenses yet.
-          </p>
+
+          <div className="py-20 text-center">
+
+            <div className="text-6xl mb-4">
+              💸
+            </div>
+
+            <p className="text-slate-400 text-xl">
+              No expenses added yet.
+            </p>
+
+          </div>
+
         ) : (
-          expenses.map(
-            (expense: any) => (
+
+          <div className="space-y-4">
+
+            {expenses.map((expense: any) => (
+
               <div
                 key={expense.id}
-                className="flex justify-between border-b border-slate-700 py-4"
+                className="flex justify-between items-center bg-slate-800 rounded-2xl p-6 hover:bg-slate-700 transition-all"
               >
+
                 <div>
 
-                  <h3 className="text-xl">
+                  <h3 className="text-2xl font-semibold">
                     {expense.description}
                   </h3>
 
-                  <p className="text-slate-400">
+                  <p className="text-slate-400 mt-1">
                     {expense.category}
                   </p>
 
-                  <p className="text-sm text-slate-500">
-                    Paid by{" "}
-                    {expense.paidBy?.name ??
-                      "Unknown"}
+                  <p className="text-slate-500 text-sm mt-2">
+                    Paid by {expense.paidBy?.name || "Unknown"}
                   </p>
 
                 </div>
 
-                <div className="text-2xl font-bold">
+                <div className="text-3xl font-bold text-green-400">
                   ₹{expense.amount}
                 </div>
 
               </div>
-            )
-          )
+
+            ))}
+
+          </div>
+
         )}
 
       </div>

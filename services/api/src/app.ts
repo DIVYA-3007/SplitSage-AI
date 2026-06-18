@@ -20,6 +20,10 @@ import receiptHistoryRoutes from "./routes/receiptHistory.routes";
 import forecastRoutes from "./routes/forecast.routes";
 import budgetRoutes from "./routes/budget.routes";
 import subscriptionRoutes from "./routes/subscription.routes";
+import goalRoutes from "./routes/goal.routes";
+import financialAIRoutes from "./routes/financialAI.routes";
+import inviteRoutes from "./routes/invite.routes";
+import removeMemberRoutes from "./routes/removeMember.routes";
 
 const app = express();
 
@@ -98,6 +102,19 @@ app.use(
 app.use(
   "/api/subscriptions",
   subscriptionRoutes
+);
+app.use(
+  "/api/goals",
+  goalRoutes
+);
+app.use(
+  "/api/financial-ai",
+  financialAIRoutes
+);
+app.use("/api", inviteRoutes);
+app.use(
+  "/api/groups",
+  removeMemberRoutes
 );
 
 export default app;
