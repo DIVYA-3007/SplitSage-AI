@@ -29,7 +29,7 @@ export default function MemberBarChart({
           <Tooltip />
 
           <Bar
-            dataKey="amount"
+            dataKey="value"
             fill="#3b82f6"
           />
         </BarChart>

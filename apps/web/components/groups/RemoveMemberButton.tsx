@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import toast from "react-hot-toast";
+
 import api from "@/lib/api";
 
 interface Props {
@@ -13,55 +16,101 @@ export default function RemoveMemberButton({
   userId,
   onSuccess,
 }: Props) {
+  const [loading, setLoading] =
+    useState(false);
+
   async function removeMember() {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to remove this member?"
-    );
+    const confirmed =
+      window.confirm(
+        "⚠️ Are you sure you want to remove this member?\n\nThey will lose access to this group and all associated expenses."
+      );
 
-    if (!confirmDelete) return;
+    if (!confirmed) return;
 
-    console.log("========== REMOVE MEMBER ==========");
-    console.log("Group ID:", groupId);
-    console.log("User ID:", userId);
+    const loadingToast =
+      toast.loading(
+        "Removing member..."
+      );
+
     console.log(
-      "Request URL:",
-      `/groups/${groupId}/member/${userId}`
+      "========== REMOVE MEMBER =========="
+    );
+    console.log(
+      "Group ID:",
+      groupId
+    );
+    console.log(
+      "User ID:",
+      userId
     );
 
     try {
-      const res = await api.delete(
-        `/groups/${groupId}/member/${userId}`
+      setLoading(true);
+
+      const res =
+        await api.delete(
+          `/groups/${groupId}/member/${userId}`
+        );
+
+      console.log(
+        "Response:",
+        res.data
       );
 
-      console.log("Response:", res.data);
+      toast.dismiss(
+        loadingToast
+      );
 
-      alert(
+      toast.success(
         res.data.message ||
-          "Member removed successfully."
+          "Member removed successfully!"
       );
 
       onSuccess();
     } catch (err: any) {
-      console.log("Remove Member Error:", err);
+      console.log(
+        "Remove Member Error:",
+        err
+      );
 
       console.log(
         "Backend Response:",
         err.response?.data
       );
 
-      alert(
-        err.response?.data?.message ||
+      toast.dismiss(
+        loadingToast
+      );
+
+      toast.error(
+        err.response?.data
+          ?.message ||
           "Failed to remove member."
       );
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <button
       onClick={removeMember}
-      className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-xl font-semibold transition-all"
+      disabled={loading}
+      className="
+        bg-red-600
+        hover:bg-red-700
+        disabled:bg-slate-700
+        px-4
+        py-2
+        rounded-xl
+        font-semibold
+        transition-all
+        hover:scale-105
+      "
     >
-      ❌ Remove
+      {loading
+        ? "Removing..."
+        : "❌ Remove"}
     </button>
   );
 }

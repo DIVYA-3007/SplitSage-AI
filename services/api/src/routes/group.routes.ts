@@ -1,4 +1,5 @@
 import { Router } from "express";
+
 import { authMiddleware } from "../middleware/auth.middleware";
 
 import {
@@ -10,11 +11,19 @@ import {
 
 const router = Router();
 
+// ===========================
+// Create Group
+// ===========================
+
 router.post(
   "/",
   authMiddleware,
   create
 );
+
+// ===========================
+// Get My Groups
+// ===========================
 
 router.get(
   "/",
@@ -22,17 +31,19 @@ router.get(
   getGroups
 );
 
+// ===========================
+// Get Group Details
+// ===========================
+
 router.get(
   "/:groupId",
   authMiddleware,
   getGroup
 );
 
-router.post(
-  "/:groupId/members",
-  authMiddleware,
-  inviteMember
-);
+// ===========================
+// Invite Member (Admin Only)
+// ===========================
 
 router.post(
   "/:groupId/invite",

@@ -28,6 +28,13 @@ interface ExpenseWithParticipantsData {
   participants: ExpenseParticipantData[];
 }
 
+interface UpdateExpenseData {
+  amount: number;
+  description: string;
+  category: string;
+  participants?: ExpenseParticipantData[];
+}
+
 // =====================================
 // Create Expense
 // =====================================
@@ -45,12 +52,13 @@ export async function createExpenseService(
     throw new Error("Group not found");
   }
 
-  const member = await prisma.groupMember.findFirst({
-    where: {
-      userId: data.paidBy,
-      groupId: data.groupId,
-    },
-  });
+  const member =
+    await prisma.groupMember.findFirst({
+      where: {
+        userId: data.paidBy,
+        groupId: data.groupId,
+      },
+    });
 
   if (!member) {
     throw new Error(
@@ -58,15 +66,16 @@ export async function createExpenseService(
     );
   }
 
-  const expense = await prisma.expense.create({
-    data: {
-      groupId: data.groupId,
-      paidById: data.paidBy,
-      amount: data.amount,
-      description: data.description,
-      category: data.category,
-    },
-  });
+  const expense =
+    await prisma.expense.create({
+      data: {
+        groupId: data.groupId,
+        paidById: data.paidBy,
+        amount: data.amount,
+        description: data.description,
+        category: data.category,
+      },
+    });
 
   await createActivity(
     data.paidBy,
@@ -89,6 +98,7 @@ export async function getExpensesService(
     where: {
       groupId,
     },
+
     include: {
       paidBy: {
         select: {
@@ -97,7 +107,20 @@ export async function getExpensesService(
           email: true,
         },
       },
+
+      participants: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
     },
+
     orderBy: {
       createdAt: "desc",
     },
@@ -110,24 +133,75 @@ export async function getExpensesService(
 
 export async function updateExpenseService(
   expenseId: string,
-  data: {
-    amount: number;
-    description: string;
-    category: string;
-  }
+  data: UpdateExpenseData
 ) {
-  return await prisma.expense.update({
+  const expense =
+    await prisma.expense.findUnique({
+      where: {
+        id: expenseId,
+      },
+    });
+
+  if (!expense) {
+    throw new Error(
+      "Expense not found"
+    );
+  }
+
+  await prisma.expense.update({
     where: {
       id: expenseId,
     },
+
     data: {
       amount: data.amount,
-      description: data.description,
+      description:
+        data.description,
       category: data.category,
     },
   });
-}
 
+  if (
+    data.participants &&
+    data.participants.length > 0
+  ) {
+    await prisma.expenseParticipant.deleteMany({
+      where: {
+        expenseId,
+      },
+    });
+
+    await prisma.expenseParticipant.createMany({
+      data:
+        data.participants.map(
+          (participant) => ({
+            expenseId,
+            userId:
+              participant.userId,
+            shareAmount:
+              participant.shareAmount,
+            paid: false,
+          })
+        ),
+    });
+  }
+
+  return await prisma.expense.findUnique({
+    where: {
+      id: expenseId,
+    },
+
+    include: {
+      paidBy: true,
+
+      participants: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
+}
 // =====================================
 // Delete Expense
 // =====================================
@@ -135,6 +209,18 @@ export async function updateExpenseService(
 export async function deleteExpenseService(
   expenseId: string
 ) {
+  await prisma.expenseParticipant.deleteMany({
+    where: {
+      expenseId,
+    },
+  });
+
+  await prisma.receipt.deleteMany({
+    where: {
+      expenseId,
+    },
+  });
+
   return await prisma.expense.delete({
     where: {
       id: expenseId,
@@ -153,15 +239,16 @@ export async function saveReceiptExpense(
   description: string,
   category: string
 ) {
-  const expense = await prisma.expense.create({
-    data: {
-      groupId,
-      paidById,
-      amount,
-      description,
-      category,
-    },
-  });
+  const expense =
+    await prisma.expense.create({
+      data: {
+        groupId,
+        paidById,
+        amount,
+        description,
+        category,
+      },
+    });
 
   await createActivity(
     paidById,
@@ -181,22 +268,37 @@ export async function askExpenseAI(
   groupId: string,
   question: string
 ) {
-  const expenses = await prisma.expense.findMany({
-    where: {
-      groupId,
-    },
-    include: {
-      paidBy: {
-        select: {
-          name: true,
-          email: true,
+  const expenses =
+    await prisma.expense.findMany({
+      where: {
+        groupId,
+      },
+
+      include: {
+        paidBy: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
   if (expenses.length === 0) {
     return "No expenses found for this group.";
@@ -222,18 +324,22 @@ Rules:
 
   const completion =
     await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model:
+        "llama-3.3-70b-versatile",
+
       messages: [
         {
           role: "user",
           content: prompt,
         },
       ],
+
       temperature: 0,
     });
 
   return (
-    completion.choices[0].message.content ??
+    completion.choices[0].message
+      .content ??
     "No response generated."
   );
 }
@@ -245,22 +351,27 @@ Rules:
 export async function createExpenseWithParticipantsService(
   data: ExpenseWithParticipantsData
 ) {
-  const group = await prisma.group.findUnique({
-    where: {
-      id: data.groupId,
-    },
-  });
+
+  const group =
+    await prisma.group.findUnique({
+      where: {
+        id: data.groupId,
+      },
+    });
 
   if (!group) {
-    throw new Error("Group not found");
+    throw new Error(
+      "Group not found"
+    );
   }
 
-  const payer = await prisma.groupMember.findFirst({
-    where: {
-      groupId: data.groupId,
-      userId: data.paidBy,
-    },
-  });
+  const payer =
+    await prisma.groupMember.findFirst({
+      where: {
+        groupId: data.groupId,
+        userId: data.paidBy,
+      },
+    });
 
   if (!payer) {
     throw new Error(
@@ -269,49 +380,47 @@ export async function createExpenseWithParticipantsService(
   }
 
   for (const participant of data.participants) {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: participant.userId,
-      },
-    });
 
-    if (!user) {
-      throw new Error(
-        `User not found: ${participant.userId}`
-      );
-    }
-
-    const member = await prisma.groupMember.findFirst({
-      where: {
-        groupId: data.groupId,
-        userId: participant.userId,
-      },
-    });
+    const member =
+      await prisma.groupMember.findFirst({
+        where: {
+          groupId: data.groupId,
+          userId: participant.userId,
+        },
+      });
 
     if (!member) {
       throw new Error(
-        `${user.name || user.email} is not a member of this group`
+        "Invalid participant"
       );
     }
+
   }
 
-  const expense = await prisma.expense.create({
-    data: {
-      groupId: data.groupId,
-      paidById: data.paidBy,
-      amount: data.amount,
-      description: data.description,
-      category: data.category,
-    },
-  });
+  const expense =
+    await prisma.expense.create({
+      data: {
+        groupId: data.groupId,
+        paidById: data.paidBy,
+        amount: data.amount,
+        description:
+          data.description,
+        category: data.category,
+      },
+    });
 
   await prisma.expenseParticipant.createMany({
-    data: data.participants.map((participant) => ({
-      expenseId: expense.id,
-      userId: participant.userId,
-      shareAmount: participant.shareAmount,
-      paid: false,
-    })),
+    data:
+      data.participants.map(
+        (participant) => ({
+          expenseId: expense.id,
+          userId:
+            participant.userId,
+          shareAmount:
+            participant.shareAmount,
+          paid: false,
+        })
+      ),
   });
 
   await createActivity(
@@ -320,16 +429,29 @@ export async function createExpenseWithParticipantsService(
     `Added expense "${data.description}" (₹${data.amount})`,
     data.groupId
   );
-
-  return await prisma.expense.findUnique({
+    return await prisma.expense.findUnique({
     where: {
       id: expense.id,
     },
+
     include: {
-      paidBy: true,
+      paidBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+
       participants: {
         include: {
-          user: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
       },
     },

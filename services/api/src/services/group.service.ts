@@ -9,24 +9,20 @@ export async function createGroup(
   name: string,
   userId: string
 ) {
-  console.log("CREATE GROUP USER ID =", userId);
-
   const group = await prisma.group.create({
     data: {
       name,
     },
   });
 
-  console.log("GROUP CREATED =", group.id);
-
   await prisma.groupMember.create({
     data: {
       userId,
       groupId: group.id,
+      isAdmin: true, // Creator becomes admin
     },
   });
 
-  // Create Activity
   await createActivity(
     userId,
     "GROUP_CREATED",
@@ -44,9 +40,6 @@ export async function createGroup(
 export async function getMyGroups(
   userId: string
 ) {
-  console.log("================================");
-  console.log("USER ID =", userId);
-
   const groups = await prisma.groupMember.findMany({
     where: {
       userId,
@@ -67,20 +60,7 @@ export async function getMyGroups(
     },
   });
 
-  console.log(
-    "GROUP MEMBERS FOUND =",
-    groups.length
-  );
-
-  console.log(
-    JSON.stringify(groups, null, 2)
-  );
-
-  console.log("================================");
-
-  return groups.map(
-    (item) => item.group
-  );
+  return groups.map((item) => item.group);
 }
 
 // =====================================
@@ -91,12 +71,11 @@ export async function addMember(
   groupId: string,
   email: string
 ) {
-  const user =
-    await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
 
   if (!user) {
     throw new Error("User not found");
@@ -121,10 +100,10 @@ export async function addMember(
       data: {
         userId: user.id,
         groupId,
+        isAdmin: false,
       },
     });
 
-  // Create Activity
   await createActivity(
     user.id,
     "MEMBER_JOINED",
@@ -133,6 +112,26 @@ export async function addMember(
   );
 
   return member;
+}
+
+// =====================================
+// Check Admin
+// =====================================
+
+export async function isGroupAdmin(
+  groupId: string,
+  userId: string
+) {
+  const member =
+    await prisma.groupMember.findFirst({
+      where: {
+        groupId,
+        userId,
+        isAdmin: true,
+      },
+    });
+
+  return !!member;
 }
 
 // =====================================
@@ -152,6 +151,10 @@ export async function getGroupById(
         members: {
           include: {
             user: true,
+          },
+
+          orderBy: {
+            isAdmin: "desc",
           },
         },
 

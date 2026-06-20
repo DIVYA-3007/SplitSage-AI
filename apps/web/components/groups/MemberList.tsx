@@ -5,6 +5,8 @@ import RemoveMemberButton from "./RemoveMemberButton";
 interface Member {
   id: string;
 
+  isAdmin: boolean;
+
   user: {
     id: string;
     name: string;
@@ -33,7 +35,8 @@ export default function MemberList({
         </h2>
 
         <span className="bg-blue-600 px-3 py-1 rounded-full text-sm font-semibold">
-          {members.length} Member{members.length !== 1 ? "s" : ""}
+          {members.length} Member
+          {members.length !== 1 ? "s" : ""}
         </span>
 
       </div>
@@ -50,7 +53,7 @@ export default function MemberList({
 
         <div className="space-y-4">
 
-          {members.map((member, index) => (
+          {members.map((member) => (
 
             <div
               key={member.id}
@@ -61,7 +64,9 @@ export default function MemberList({
 
                 <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-lg">
 
-                  {member.user.name?.charAt(0).toUpperCase() || "U"}
+                  {member.user.name
+                    ?.charAt(0)
+                    .toUpperCase() || "U"}
 
                 </div>
 
@@ -83,9 +88,9 @@ export default function MemberList({
 
               </div>
 
-              {index === 0 ? (
+              {member.isAdmin ? (
 
-                <span className="bg-yellow-500 text-black px-3 py-2 rounded-xl font-semibold">
+                <span className="bg-yellow-500 text-black px-4 py-2 rounded-xl font-bold">
 
                   👑 Admin
 

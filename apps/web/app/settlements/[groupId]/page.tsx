@@ -4,11 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function SettlementPage() {
   const { groupId } = useParams();
 
   const [data, setData] = useState<any>(null);
+
+  const [payingIndex, setPayingIndex] =
+    useState<number | null>(null);
 
   useEffect(() => {
     if (groupId) {
@@ -18,37 +22,77 @@ export default function SettlementPage() {
 
   async function fetchSettlement() {
     try {
-      const res = await api.get(`/settlements/${groupId}`);
+      const res = await api.get(
+        `/settlements/${groupId}`
+      );
 
       setData(res.data);
     } catch (err) {
       console.log(err);
+
+      toast.error(
+        "Failed to load settlements."
+      );
+    }
+  }
+
+  async function markPaid(
+    item: any,
+    index: number
+  ) {
+    try {
+      setPayingIndex(index);
+      console.log("Settlement Item:", item);
+      await api.post(
+        "/settlements/pay",
+        {
+          fromUserId: item.fromUserId,
+          toUserId: item.toUserId,
+          groupId,
+          amount: item.amount,
+        }
+      );
+
+      toast.success(
+        "Settlement marked as paid."
+      );
+
+      fetchSettlement();
+    } catch (err) {
+      console.log(err);
+
+      toast.error(
+        "Failed to mark settlement."
+      );
+    } finally {
+      setPayingIndex(null);
     }
   }
 
   if (!data) {
     return (
       <DashboardLayout>
-        <div className="p-10 text-3xl text-white">
+        <div className="p-10 text-4xl">
           Loading...
         </div>
       </DashboardLayout>
     );
   }
-
-  return (
+    return (
     <DashboardLayout>
+
       <div className="p-8">
 
         <h1 className="text-6xl font-bold mb-10">
           💰 Settlement Details
         </h1>
 
-        {/* Top Cards */}
+        {/* Summary Cards */}
 
-        <div className="grid grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
 
           <div className="bg-slate-900 rounded-2xl p-8">
+
             <p className="text-slate-400">
               Total Expense
             </p>
@@ -56,9 +100,11 @@ export default function SettlementPage() {
             <h2 className="text-5xl font-bold mt-4 text-green-400">
               ₹{data.total}
             </h2>
+
           </div>
 
           <div className="bg-slate-900 rounded-2xl p-8">
+
             <p className="text-slate-400">
               Members
             </p>
@@ -66,9 +112,11 @@ export default function SettlementPage() {
             <h2 className="text-5xl font-bold mt-4">
               {data.memberCount}
             </h2>
+
           </div>
 
           <div className="bg-slate-900 rounded-2xl p-8">
+
             <p className="text-slate-400">
               Equal Share
             </p>
@@ -76,6 +124,7 @@ export default function SettlementPage() {
             <h2 className="text-5xl font-bold mt-4 text-blue-400">
               ₹{Math.round(data.share)}
             </h2>
+
           </div>
 
         </div>
@@ -85,7 +134,9 @@ export default function SettlementPage() {
         <div className="bg-slate-900 rounded-2xl p-8 mb-10">
 
           <h2 className="text-4xl font-bold mb-8">
+
             💸 Settlement Summary
+
           </h2>
 
           <div className="space-y-5">
@@ -93,7 +144,10 @@ export default function SettlementPage() {
             {data.settlements?.length > 0 ? (
 
               data.settlements.map(
-                (item: any, index: number) => (
+                (
+                  item: any,
+                  index: number
+                ) => (
 
                   <div
                     key={index}
@@ -103,54 +157,95 @@ export default function SettlementPage() {
                     <div>
 
                       <h3 className="text-3xl font-bold">
+
                         {item.from}
+
                       </h3>
 
                       <p className="text-slate-400">
+
                         pays
+
                       </p>
 
                     </div>
 
                     <div className="text-5xl">
+
                       ➜
+
                     </div>
 
                     <div>
 
                       <h3 className="text-3xl font-bold">
+
                         {item.to}
+
                       </h3>
 
                       <p className="text-slate-400">
+
                         receives
+
                       </p>
 
                     </div>
+                                        <div className="flex flex-col items-end gap-3">
 
-                    <div className="text-4xl font-bold text-green-400">
-                      ₹{item.amount}
+                      <span className="text-4xl font-bold text-green-400">
+
+                        ₹{item.amount}
+
+                      </span>
+
+                      <button
+                        onClick={() =>
+                          markPaid(
+                            item,
+                            index
+                          )
+                        }
+                        disabled={
+                          payingIndex === index
+                        }
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-slate-600 px-6 py-3 rounded-xl font-bold transition-all"
+                      >
+
+                        {payingIndex === index
+                          ? "Processing..."
+                          : "✔ Mark Paid"}
+
+                      </button>
+
                     </div>
 
                   </div>
 
                 )
+
               )
 
             ) : (
 
               <div className="bg-slate-800 rounded-xl p-10 text-center">
 
-                <h2 className="text-4xl">
+                <h2 className="text-5xl">
+
                   🎉
+
                 </h2>
 
                 <p className="text-2xl mt-4 text-slate-300">
+
                   Everyone is settled up.
+
                 </p>
 
                 <p className="text-slate-500 mt-2">
+
                   No pending payments.
+
                 </p>
 
               </div>
@@ -166,15 +261,18 @@ export default function SettlementPage() {
         <div className="bg-slate-900 rounded-2xl p-8">
 
           <h2 className="text-4xl font-bold mb-8">
+
             👥 Member Balances
+
           </h2>
 
           <div className="space-y-4">
 
             {data.balances.map(
-              (member: any, index: number) => (
-
-                <div
+              (
+                member: any,
+                index: number
+              ) => (                <div
                   key={index}
                   className="flex justify-between items-center bg-slate-800 rounded-xl p-5"
                 >
@@ -200,6 +298,7 @@ export default function SettlementPage() {
                 </div>
 
               )
+
             )}
 
           </div>
@@ -207,6 +306,9 @@ export default function SettlementPage() {
         </div>
 
       </div>
+
     </DashboardLayout>
+
   );
+
 }

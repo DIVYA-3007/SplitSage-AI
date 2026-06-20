@@ -24,6 +24,11 @@ import goalRoutes from "./routes/goal.routes";
 import financialAIRoutes from "./routes/financialAI.routes";
 import inviteRoutes from "./routes/invite.routes";
 import removeMemberRoutes from "./routes/removeMember.routes";
+import leaveGroupRoutes from "./routes/leaveGroup.routes";
+import deleteGroupRoutes from "./routes/deleteGroup.routes";
+import balanceRoutes from "./routes/balance.routes";
+import analyticsRoutes from "./routes/analytics.routes";
+
 
 const app = express();
 
@@ -115,6 +120,22 @@ app.use("/api", inviteRoutes);
 app.use(
   "/api/groups",
   removeMemberRoutes
+);
+app.use(
+  "/api/groups",
+  leaveGroupRoutes
+);
+app.use(
+  "/api/groups",
+  deleteGroupRoutes
+);
+app.use(
+  "/api/groups",
+  balanceRoutes
+);
+app.use(
+  "/api/analytics",
+  analyticsRoutes
 );
 
 export default app;

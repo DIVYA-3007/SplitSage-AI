@@ -1,4 +1,3 @@
-
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware";
 
@@ -7,18 +6,22 @@ import {
   getMyGroups,
   addMember,
   getGroupById,
+  isGroupAdmin,
 } from "../services/group.service";
+
+// =====================================
+// Create Group
+// =====================================
 
 export const create = async (
   req: AuthRequest,
   res: Response
 ) => {
   try {
-    const group =
-      await createGroup(
-        req.body.name,
-        req.user!.id
-      );
+    const group = await createGroup(
+      String(req.body.name),
+      String(req.user!.id)
+    );
 
     return res.status(201).json({
       success: true,
@@ -32,13 +35,18 @@ export const create = async (
   }
 };
 
+// =====================================
+// Get My Groups
+// =====================================
+
 export const getGroups = async (
   req: AuthRequest,
   res: Response
 ) => {
   try {
-    const groups =
-      await getMyGroups(req.user!.id);
+    const groups = await getMyGroups(
+      String(req.user!.id)
+    );
 
     return res.json({
       success: true,
@@ -52,22 +60,38 @@ export const getGroups = async (
   }
 };
 
+// =====================================
+// Invite Member (Admin Only)
+// =====================================
+
 export const inviteMember = async (
   req: AuthRequest,
   res: Response
 ) => {
   try {
-    const groupId =
-      req.params.groupId as string;
+    const groupId = String(req.params.groupId);
 
-    const member =
-      await addMember(
-        groupId,
-        req.body.email
-      );
+    const admin = await isGroupAdmin(
+      groupId,
+      String(req.user!.id)
+    );
+
+    if (!admin) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Only group admin can invite members.",
+      });
+    }
+
+    const member = await addMember(
+      groupId,
+      String(req.body.email)
+    );
 
     return res.json({
       success: true,
+      message: "Member invited successfully.",
       member,
     });
   } catch (err: any) {
@@ -78,16 +102,20 @@ export const inviteMember = async (
   }
 };
 
+// =====================================
+// Get Group Details
+// =====================================
+
 export const getGroup = async (
   req: AuthRequest,
   res: Response
 ) => {
   try {
-    const groupId =
-      req.params.groupId as string;
+    const groupId = String(req.params.groupId);
 
-    const group =
-      await getGroupById(groupId);
+    const group = await getGroupById(
+      groupId
+    );
 
     return res.json({
       success: true,

@@ -148,21 +148,26 @@ export const updateExpense = async (
         {
           amount: Number(req.body.amount),
           description: req.body.description,
-          category: req.body.category,
+          category:
+            req.body.category || "Other",
+
+          // ⭐ NEW
+          participants:
+            req.body.participants || [],
         }
       );
 
     await createActivity(
       req.user!.id,
       "UPDATE_EXPENSE",
-      `Updated expense "${expense.description}"`,
-      expense.groupId
+      `Updated expense "${expense?.description}"`,
+      expense?.groupId || ""
     );
 
     await createNotification(
       req.user!.id,
       "Expense Updated",
-      `Expense "${expense.description}" updated successfully.`,
+      `Expense "${expense?.description}" updated successfully.`,
       "expense"
     );
 

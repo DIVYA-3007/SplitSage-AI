@@ -1,9 +1,9 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function BudgetPage() {
   const [summary, setSummary] = useState<any>(null);
@@ -23,6 +23,15 @@ export default function BudgetPage() {
   }
 
   async function saveBudget() {
+    if (!amount || Number(amount) <= 0) {
+      toast.error("Please enter a valid budget.");
+      return;
+    }
+
+    const loadingToast = toast.loading(
+      "Saving budget..."
+    );
+
     try {
       await api.post("/budget", {
         amount: Number(amount),
@@ -30,20 +39,35 @@ export default function BudgetPage() {
 
       setAmount("");
 
-      fetchSummary();
+      await fetchSummary();
 
-      alert("Budget saved successfully!");
+      toast.dismiss(loadingToast);
+
+      toast.success(
+        "Budget saved successfully!"
+      );
     } catch (err) {
       console.log(err);
-      alert("Unable to save budget");
+
+      toast.dismiss(loadingToast);
+
+      toast.error(
+        "Unable to save budget."
+      );
     }
   }
 
   if (!summary) {
     return (
       <DashboardLayout>
-        <div className="text-4xl font-bold text-white">
-          Loading...
+        <div className="flex items-center justify-center h-[70vh]">
+
+          <div className="text-5xl font-bold animate-pulse">
+
+            Loading Budget...
+
+          </div>
+
         </div>
       </DashboardLayout>
     );
@@ -141,7 +165,10 @@ export default function BudgetPage() {
                 : "bg-red-500"
             }`}
             style={{
-              width: `${Math.min(summary.percentage, 100)}%`,
+              width: `${Math.min(
+                summary.percentage,
+                100
+              )}%`,
             }}
           />
 
@@ -169,7 +196,7 @@ export default function BudgetPage() {
 
           <button
             onClick={saveBudget}
-            className="mt-6 w-full bg-blue-600 hover:bg-blue-700 p-4 rounded-xl text-xl font-bold"
+            className="mt-6 w-full bg-blue-600 hover:bg-blue-700 p-4 rounded-xl text-xl font-bold transition-all"
           >
             Save Budget
           </button>

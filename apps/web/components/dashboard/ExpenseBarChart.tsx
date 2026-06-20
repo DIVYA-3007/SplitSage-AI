@@ -34,7 +34,7 @@ export default function ExpenseBarChart({
           <Tooltip />
 
           <Bar
-            dataKey="amount"
+            dataKey="value"
             fill="#2563eb"
           />
         </BarChart>
